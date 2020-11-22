@@ -1,5 +1,4 @@
 #include <uxr/client/profile/transport/serial/serial_transport_external.h>
-//#include "stm32f4xx_hal_dma.h"
 
 #include <unistd.h>
 #include <stdio.h>
@@ -28,15 +27,9 @@
         (CLOCK_GetRootPostDivider(kCLOCK_RootUart3)) / 10
 
 
-#define UART_DMA_BUFFER_SIZE 2048
-
-static uint8_t dma_buffer[UART_DMA_BUFFER_SIZE];
-static size_t dma_head = 0, dma_tail = 0;
 
 uart_rtos_handle_t handle;
 struct _uart_handle t_handle;
-
-const char *to_send               = "here\r\n";
 
 volatile uint32_t remote_addr_rpmsg;
 struct rpmsg_lite_endpoint *volatile my_ept;
@@ -103,7 +96,6 @@ PRINTF("Calling init serial from correct place\r\n");
 
     result = rpmsg_queue_nocopy_free(my_rpmsg, rx_buf);
 
-    PRINTF("Ret: %i\r\n", result);
     len = 496;
     tx_buf = rpmsg_lite_alloc_tx_buffer(my_rpmsg, &len, RL_BLOCK);
 
@@ -118,39 +110,27 @@ bool uxr_close_serial_platform(struct uxrSerialPlatform* platform)
 
 size_t uxr_write_serial_data_platform(uxrSerialPlatform* platform, uint8_t* buf, size_t len, uint8_t* errcode)
 {
-int32_t result;
-// PRINTF("Writing Serial: %i\r\n", len);
-memcpy(tx_buf,buf,len);
-result = rpmsg_lite_send(my_rpmsg, my_ept, remote_addr_rpmsg, tx_buf, len, 100);
-// PRINTF("Done writing Serial: %i\r\n", result);
-// UART_RTOS_Send(&handle, buf, len);
+  int32_t result;
+  memcpy(tx_buf,buf,len);
+  result = rpmsg_lite_send(my_rpmsg, my_ept, remote_addr_rpmsg, tx_buf, len, 100);
+
 
   return len;
 }
 
 size_t uxr_read_serial_data_platform(uxrSerialPlatform* platform, uint8_t* buf, size_t len, int timeout, uint8_t* errcode)
 {
-
-  // PRINTF("Reading Serial: %i\r\n", len);
-
   int32_t result;
 
   result = rpmsg_queue_recv_nocopy(my_rpmsg, my_queue, (uint32_t *)&remote_addr_rpmsg, (char **)&rx_buf, &len, 1000);
-  // PRINTF("Serial read: %i %i\r\n", len, result);
 
   if(result == 0) {
-    // PRINTF("Received: %i\r\n", len);
     memcpy(buf, rx_buf, len);
     result = rpmsg_queue_nocopy_free(my_rpmsg, rx_buf);
   }
   else {
     len = 0;
   }
-
-  // size_t n = 0;
-  // int error;
-  //
-  // error = UART_RTOS_Receive(&handle, buf, len, &n, timeout);
 
   return len;
 }
