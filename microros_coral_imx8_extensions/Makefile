@@ -179,6 +179,7 @@ MICROROS_INCLUDES += -I$(EXTENSIONS_DIR)/FreeRTOS-Plus-POSIX/include
 MICROROS_INCLUDES += -I$(EXTENSIONS_DIR)/FreeRTOS-Plus-POSIX/include/portable
 MICROROS_INCLUDES += -I$(EXTENSIONS_DIR)/FreeRTOS-Plus-POSIX/include/portable/crazyflie
 MICROROS_INCLUDES += -I$(CRAZYFLIE_BASE)/src/lib/FreeRTOS/include
+MICROROS_INCLUDES += -I$(EXTENSIONS_DIR)/Middlewares/multicore/rpmsg_lite/lib/include/platform/imx8mq_m4
 C_INCLUDES += $(MICROROS_INCLUDES)
 
 COLCON_INCLUDES += $(EXTENSIONS_DIR)/FreeRTOS-Plus-POSIX/include 
@@ -197,6 +198,7 @@ COLCON_INCLUDES += $(EXTENSIONS_DIR)/Middlewares/multicore/rpmsg_lite/lib/includ
 COLCON_INCLUDES += $(EXTENSIONS_DIR)/Middlewares/Third_Party/FreeRTOS/Source/include
 COLCON_INCLUDES += $(EXTENSIONS_DIR)/Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2 
 COLCON_INCLUDES += $(EXTENSIONS_DIR)/Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F 
+COLCON_INCLUDES += $(EXTENSIONS_DIR)/Middlewares/multicore/rpmsg_lite/lib/include/platform/imx8mq_m4
 #COLCON_INCLUDES += $(EXTENSIONS_DIR)/Drivers/STM32F4xx_HAL_Driver/Inc
 #COLCON_INCLUDES += $(EXTENSIONS_DIR)/Drivers/CMSIS/Device/ST/STM32F4xx/Include
 COLCON_INCLUDES += $(EXTENSIONS_DIR)/Drivers/CMSIS/Include
