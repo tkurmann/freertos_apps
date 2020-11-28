@@ -22,48 +22,24 @@
 #define LOCAL_EPT_ADDR (30)
 #endif
 
-#define BOARD_DEBUG_UART_CLK_FREQ                                                           \
-    CLOCK_GetPllFreq(kCLOCK_SystemPll1Ctrl) / (CLOCK_GetRootPreDivider(kCLOCK_RootUart3)) / \
-        (CLOCK_GetRootPostDivider(kCLOCK_RootUart3)) / 10
-
-
-
-uart_rtos_handle_t handle;
-struct _uart_handle t_handle;
 
 volatile uint32_t remote_addr_rpmsg;
 struct rpmsg_lite_endpoint *volatile my_ept;
 volatile rpmsg_queue_handle my_queue;
 struct rpmsg_lite_instance *volatile my_rpmsg;
 
+#define BUFSIZE 1024
+char rx_buffer[BUFSIZE];
+uint32_t rx_buffer_pos = 0;
+
+uint32_t packetCount = 0;
+
 void *rx_buf;
-void *tx_buf;
+
 
 bool uxr_init_serial_platform(struct uxrSerialPlatform* platform, int fd, uint8_t remote_addr, uint8_t local_addr)
 {
 
-PRINTF("Calling init serial from correct place\r\n");
-// uint8_t background_buffer[32];
-//
-// uart_rtos_config_t uart_config = {
-//
-//     .baudrate    = 230400,
-//
-//     .parity      = kUART_ParityDisabled,
-//
-//     .stopbits    = kUART_OneStopBit,
-//
-//     .buffer      = dma_buffer,
-//
-//     .buffer_size = sizeof(dma_buffer),
-//
-// };
-//
-//     int ret;
-//     uart_config.srcclk = BOARD_DEBUG_UART_CLK_FREQ;
-//     uart_config.base   = UART3;
-//
-//     ret = UART_RTOS_Init(&handle, &t_handle, &uart_config);
     int32_t result;
     uint32_t len;
 
@@ -89,15 +65,14 @@ PRINTF("Calling init serial from correct place\r\n");
     my_ept   = rpmsg_lite_create_ept(my_rpmsg, LOCAL_EPT_ADDR, rpmsg_queue_rx_cb, my_queue);
     (void)rpmsg_ns_announce(my_rpmsg, my_ept, RPMSG_LITE_NS_ANNOUNCE_STRING, RL_NS_CREATE);
 
-    PRINTF("\r\nNameservice sent, ready for incoming messages...\r\n");
+    printf("\r\nNameservice sent, ready for incoming messages...\r\n");
 
+    /* Wait for initial hello messge of the imx_rpmsg_tty driver */
     result =
         rpmsg_queue_recv_nocopy(my_rpmsg, my_queue, (uint32_t *)&remote_addr_rpmsg, (char **)&rx_buf, &len, RL_BLOCK);
 
     result = rpmsg_queue_nocopy_free(my_rpmsg, rx_buf);
 
-    len = 496;
-    tx_buf = rpmsg_lite_alloc_tx_buffer(my_rpmsg, &len, RL_BLOCK);
 
   return true;
 }
@@ -110,26 +85,55 @@ bool uxr_close_serial_platform(struct uxrSerialPlatform* platform)
 
 size_t uxr_write_serial_data_platform(uxrSerialPlatform* platform, uint8_t* buf, size_t len, uint8_t* errcode)
 {
+  void *tx_buf;
   int32_t result;
+  if(len >= 496) {
+    printf("PACKET TOO LARGE!\r\n");
+    return 0;
+  }
+
+  // get a tx buffer and copy buf contents
+  tx_buf = rpmsg_lite_alloc_tx_buffer(my_rpmsg, 496, RL_BLOCK);
   memcpy(tx_buf,buf,len);
-  result = rpmsg_lite_send(my_rpmsg, my_ept, remote_addr_rpmsg, tx_buf, len, 100);
+  result = rpmsg_lite_send_nocopy(my_rpmsg, my_ept, remote_addr_rpmsg,tx_buf, len );
 
-
-  return len;
+  if(result == RL_SUCCESS){
+    return len;
+  }
+  else {
+    printf("Write Failed. %i \r\n", result);
+    return 0;
+  }
 }
 
 size_t uxr_read_serial_data_platform(uxrSerialPlatform* platform, uint8_t* buf, size_t len, int timeout, uint8_t* errcode)
 {
   int32_t result;
+ 	uint32_t len_message = 0;
 
-  result = rpmsg_queue_recv_nocopy(my_rpmsg, my_queue, (uint32_t *)&remote_addr_rpmsg, (char **)&rx_buf, &len, 1000);
-
-  if(result == 0) {
-    memcpy(buf, rx_buf, len);
-    result = rpmsg_queue_nocopy_free(my_rpmsg, rx_buf);
+  // if buffer is empty, get new data
+  if(rx_buffer_pos == 0){
+      result = rpmsg_queue_recv_nocopy(my_rpmsg, my_queue, (uint32_t *)&remote_addr_rpmsg, (char **)&rx_buf, &len_message, timeout);
+      if(result == RL_SUCCESS) {
+        // printf("%i \r\n", len_message);
+        memcpy(rx_buffer, rx_buf, len_message);
+        rx_buffer_pos+= len_message;
+        result = rpmsg_queue_nocopy_free(my_rpmsg, rx_buf);
+      }
   }
-  else {
-    len = 0;
+
+  // if more data is requested than present
+  if(len > rx_buffer_pos) {
+    len = rx_buffer_pos;
+  }
+  if(len > 0){
+    memcpy(buf, rx_buffer, len);
+
+    if((rx_buffer_pos-len) > 0) {
+      memcpy(rx_buffer, rx_buffer+len, rx_buffer_pos-len);
+    }
+
+    rx_buffer_pos-= len;
   }
 
   return len;

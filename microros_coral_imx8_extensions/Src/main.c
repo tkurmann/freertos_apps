@@ -75,11 +75,6 @@ const osThreadAttr_t initTask_attributes = {
   .stack_size = 1500
 };
 
-const osThreadAttr_t idleTask_attributes = {
-  .name = "idleTask",
-  .priority = (osPriority_t) osPriorityIdle,
-  .stack_size = 500
-};
 /* USER CODE BEGIN PV */
 
 /* USER CODE END PV */
@@ -89,9 +84,6 @@ void SystemClock_Config(void);
 void initTaskFunction(void *argument);
 
 /* USER CODE BEGIN PFP */
-#define BUFSIZE 4096
-char buffer[BUFSIZE];
-extern struct netif gnetif;
 // extern appMain;
 
 /* USER CODE END PFP */
@@ -99,19 +91,6 @@ extern struct netif gnetif;
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-static void idleTaskFunction(void *param) {
-  gpio_pin_config_t out_config = {kGPIO_DigitalOutput, 0,  kGPIO_NoIntmode};
-
-  GPIO_PinInit(GPIO1, 8u, &out_config);
-
-
-  for(;;) {
-    // vTaskDelay(100);
-     GPIO_PinWrite(GPIO1, 8u, 0U);
-     GPIO_PinWrite(GPIO1, 8u, 1U);
-
-  }
-}
 /* USER CODE END 0 */
 
 /**
@@ -129,12 +108,7 @@ int main(void)
   BOARD_BootClockRUN();
   BOARD_InitDebugConsole();
   BOARD_InitMemory();
-  NVIC_SetPriority(UART3_IRQn, 5);
-
-
-
-
-
+  NVIC_SetPriority(UART3_IRQn, 5); // set irq priority of debug console
 
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -168,7 +142,6 @@ int main(void)
   /* Create the thread(s) */
   /* creation of initTask */
   initTaskHandle = osThreadNew(initTaskFunction, NULL, &initTask_attributes);
-  idleTaskHandle = osThreadNew(idleTaskFunction, NULL, &idleTask_attributes);
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
@@ -233,18 +206,18 @@ void initTaskFunction(void *argument)
 
 
   while (1){
-    // PRINTF("\r\nIt keeps going and going...\r\n");
+    // printf("\r\nIt keeps going and going...\r\n");
     osDelay(100000);
     char ptrTaskList[500];
-    vTaskList(ptrTaskList);
-    PRINTF("**********************************\n");
-    PRINTF("Task  State   Prio    Stack    Num\n");
-    PRINTF("**********************************\n");
-    PRINTF(ptrTaskList);
-    PRINTF("**********************************\n");
-
-    TaskHandle_t xHandle;
-    xHandle = xTaskGetHandle("microROS_app");
+    // vTaskList(ptrTaskList);
+    // printf("**********************************\n");
+    // printf("Task  State   Prio    Stack    Num\n");
+    // printf("**********************************\n");
+    // printf(ptrTaskList);
+    // printf("**********************************\n");
+    //
+    // TaskHandle_t xHandle;
+    // xHandle = xTaskGetHandle("microROS_app");
   }
   /* USER CODE END 5 */
 }

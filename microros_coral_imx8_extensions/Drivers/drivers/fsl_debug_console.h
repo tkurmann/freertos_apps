@@ -73,7 +73,7 @@ extern serial_handle_t g_serialHandle; /*!< serial manager handle */
     } while (0)
 #define GETCHAR() -1
 #elif SDK_DEBUGCONSOLE == DEBUGCONSOLE_REDIRECT_TO_SDK /* Select printf, scanf, putchar, getchar of SDK version. */
-#define PRINTF  DbgConsole_Printf
+#define printf  DbgConsole_Printf
 #define SCANF   DbgConsole_Scanf
 #define PUTCHAR DbgConsole_Putchar
 #define GETCHAR DbgConsole_Getchar
